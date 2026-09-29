@@ -12,7 +12,7 @@ const googlePlacesBaseURL = "https://places.googleapis.com"
 
 type GooglePlacesService struct {
 	apiKey string
-	client  *http.Client
+	client *http.Client
 }
 
 func NewGooglePlacesService(apiKey string) *GooglePlacesService {
@@ -25,9 +25,9 @@ func NewGooglePlacesService(apiKey string) *GooglePlacesService {
 }
 
 type AutocompleteRequest struct {
-	Input               string   `json:"input"`
+	Input                string   `json:"input"`
 	IncludedPrimaryTypes []string `json:"includedPrimaryTypes"`
-	SessionToken        string   `json:"sessionToken"`
+	SessionToken         string   `json:"sessionToken"`
 }
 
 type AutocompleteResponse struct {

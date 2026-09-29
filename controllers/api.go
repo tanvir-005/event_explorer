@@ -4,11 +4,11 @@ import (
 	"event_explorer/models"
 	"event_explorer/services"
 	"event_explorer/utils"
+	"fmt"
+	beego "github.com/beego/beego/v2/server/web"
 	"net/http"
 	"slices"
 	"strings"
-
-	beego "github.com/beego/beego/v2/server/web"
 )
 
 type APIController struct {
@@ -107,4 +107,33 @@ func (c *APIController) Location() {
 	}
 
 	c.respond(http.StatusOK, location)
+}
+
+func (c *APIController) InvalidateCache() {
+	city := c.GetString("city")
+	countryCode := c.GetString("countryCode")
+	category := c.GetString("category")
+
+	if city == "" || countryCode == "" || category == "" {
+		c.respond(http.StatusBadRequest, map[string]string{
+			"error": "city, countryCode and category are required",
+		})
+		return
+	}
+
+	key := fmt.Sprintf("%s:%s:%s", city, countryCode, category)
+
+	services.App.Cache.Delete(key)
+
+	c.respond(http.StatusOK, map[string]string{
+		"message": "cache invalidated",
+	})
+}
+
+func (c *APIController) InvalidateAllCache() {
+	services.App.Cache.Clear()
+
+	c.respond(http.StatusOK, map[string]string{
+		"message": "all cache data invalidated",
+	})
 }
