@@ -1,29 +1,51 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Events</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Events in {{.City}}</title>
 </head>
 <body>
-    <h1>Events in {{.City}}</h1>
+    {{template "layouts/header.tpl" .}}
 
-    {{if .Error}}
-        <p>{{.Error}}</p>
-    {{else}}
+    <main>
+        <h1>Events in {{.City}}, {{.CountryCode}}</h1>
+
         {{range .Results}}
-            <h2>{{.Category}}</h2>
+            <section>
+                <h2>{{.Category}}</h2>
 
-            {{if .Error}}
-                <p>{{.Error}}</p>
-            {{else}}
-                {{range .Events}}
-                    <article>
-                        <h3>{{.Name}}</h3>
-                        <p>{{.Date}}</p>
-                        <p>{{.Venue}}</p>
-                    </article>
+                {{if .Error}}
+                    <p>{{.Error}}</p>
+                {{else if not .Events}}
+                    <p>No {{.Category}} events found.</p>
+                {{else}}
+                    {{range .Events}}
+                        <article>
+                            {{if .ImageURL}}
+                                <img
+                                    src="{{.ImageURL}}"
+                                    alt="{{.Name}}"
+                                    width="300"
+                                >
+                            {{end}}
+
+                            <h3>{{.Name}}</h3>
+                            <p>{{.Date}}</p>
+                            <p>{{.Venue}}</p>
+
+                            <a href="/events/{{.ID}}">
+                                View Details
+                            </a>
+                        </article>
+                    {{end}}
                 {{end}}
-            {{end}}
+            </section>
         {{end}}
-    {{end}}
+
+        <a href="/">Search another city</a>
+    </main>
+
+    {{template "layouts/footer.tpl" .}}
 </body>
 </html>
