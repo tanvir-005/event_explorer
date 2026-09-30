@@ -12,13 +12,17 @@ type categoryResult struct {
 	err      error
 }
 
+type EventProvider interface {
+	GetEvents(city string, countryCode string, category string) ([]models.Event, error)
+}
+
 type EventService struct {
-	ticketmaster *TicketmasterService
+	ticketmaster EventProvider
 	cache        *EventCache
 }
 
 func NewEventService(
-	ticketmaster *TicketmasterService,
+	ticketmaster EventProvider,
 	cache *EventCache,
 ) *EventService {
 	return &EventService{

@@ -29,6 +29,22 @@ func serviceWithResponse(payload string) *TicketmasterService {
 	}
 }
 
+func serviceWithStatus(statusCode int, payload string) *TicketmasterService {
+	return &TicketmasterService{
+		apiKey: "test-key",
+		client: &http.Client{
+			Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: statusCode,
+					Header:     make(http.Header),
+					Body:       io.NopCloser(strings.NewReader(payload)),
+					Request:    request,
+				}, nil
+			}),
+		},
+	}
+}
+
 func TestGetEventsMapsNestedDateAndVenue(t *testing.T) {
 	service := serviceWithResponse(`{
 		"_embedded": {
@@ -119,5 +135,39 @@ func TestGetEventMapsDetailFieldsAndAllowsMissingOptionals(t *testing.T) {
 	}
 	if sparseEvent.Date != "" || sparseEvent.Venue != "" || sparseEvent.SeatmapURL != "" {
 		t.Fatalf("missing optional fields should remain empty: %+v", sparseEvent)
+	}
+}
+
+func TestGetEventsReturnsErrorForAPIFailure(t *testing.T) {
+	service := serviceWithStatus(
+		http.StatusUnauthorized,
+		`{"fault":{"faultstring":"Invalid ApiKey"}}`,
+	)
+
+	events, err := service.GetEvents("Las Vegas", "US", "Music")
+
+	if err == nil {
+		t.Fatal("expected GetEvents to return an error")
+	}
+
+	if events != nil {
+		t.Fatalf("expected no events on API failure, got %d", len(events))
+	}
+}
+
+func TestGetEventReturnsErrorForAPIFailure(t *testing.T) {
+	service := serviceWithStatus(
+		http.StatusNotFound,
+		`{"fault":{"faultstring":"Event not found"}}`,
+	)
+
+	event, err := service.GetEvent("missing-event")
+
+	if err == nil {
+		t.Fatal("expected GetEvent to return an error")
+	}
+
+	if event != nil {
+		t.Fatalf("expected no event on API failure, got %+v", event)
 	}
 }

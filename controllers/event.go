@@ -1,17 +1,23 @@
 package controllers
 
 import (
+	"event_explorer/models"
+	"event_explorer/services"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 
-	"event_explorer/services"
-
 	beego "github.com/beego/beego/v2/server/web"
 )
 
+type TicketProvider interface {
+	GetEvent(eventID string) (*models.Event, error)
+}
+
 type EventController struct {
 	beego.Controller
+	Ticketmaster TicketProvider
 }
 
 func (c *EventController) List() {
@@ -41,7 +47,14 @@ func (c *EventController) Details() {
 		return
 	}
 
-	event, err := services.App.Ticketmaster.GetEvent(eventID)
+	provider := c.Ticketmaster
+
+	if provider == nil {
+		provider = services.App.Ticketmaster
+	}
+
+	event, err := provider.GetEvent(eventID)
+
 	if err != nil {
 		c.Data["Error"] = "Event not found."
 		c.TplName = "details.tpl"
@@ -50,6 +63,23 @@ func (c *EventController) Details() {
 
 	c.Data["Event"] = event
 	c.TplName = "details.tpl"
+}
+
+func validateTicketURL(rawURL string) error {
+	ticketURL, err := url.Parse(rawURL)
+	if err != nil {
+		return err
+	}
+
+	if !strings.EqualFold(ticketURL.Scheme, "https") {
+		return fmt.Errorf("ticket link must use HTTPS")
+	}
+
+	if !strings.EqualFold(ticketURL.Hostname(), "www.ticketmaster.com") {
+		return fmt.Errorf("ticket provider is not approved")
+	}
+
+	return nil
 }
 
 func (c *EventController) Redirect() {
@@ -61,7 +91,14 @@ func (c *EventController) Redirect() {
 		return
 	}
 
-	event, err := services.App.Ticketmaster.GetEvent(eventID)
+	provider := c.Ticketmaster
+
+	if provider == nil {
+		provider = services.App.Ticketmaster
+	}
+
+	event, err := provider.GetEvent(eventID)
+
 	if err != nil {
 		c.Data["Error"] = "Unable to find the event."
 		c.TplName = "unavailable.tpl"
@@ -74,21 +111,8 @@ func (c *EventController) Redirect() {
 		return
 	}
 
-	ticketURL, err := url.Parse(event.TicketURL)
-	if err != nil {
+	if err := validateTicketURL(event.TicketURL); err != nil {
 		c.Data["Error"] = "Invalid ticket link."
-		c.TplName = "unavailable.tpl"
-		return
-	}
-
-	if ticketURL.Scheme != "https" {
-		c.Data["Error"] = "Invalid ticket link."
-		c.TplName = "unavailable.tpl"
-		return
-	}
-
-	if !strings.EqualFold(ticketURL.Hostname(), "www.ticketmaster.com") {
-		c.Data["Error"] = "Invalid ticket provider."
 		c.TplName = "unavailable.tpl"
 		return
 	}
