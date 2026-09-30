@@ -5,8 +5,18 @@ type Event struct {
 	Name        string `json:"name"`
 	ImageURL    string `json:"imageUrl"`
 	Date        string `json:"date"`
+	Time        string `json:"time"`
+	Timezone    string `json:"timezone"`
 	Venue       string `json:"venue"`
+	Address     string `json:"address"`
+	City        string `json:"city"`
+	State       string `json:"state"`
+	Genre       string `json:"genre"`
+	SalesStatus string `json:"salesStatus"`
 	Description string `json:"description,omitempty"`
+	PleaseNote  string `json:"pleaseNote,omitempty"`
+	TicketLimit string `json:"ticketLimit,omitempty"`
+	SeatmapURL  string `json:"seatmapUrl,omitempty"`
 	TicketURL   string `json:"ticketUrl,omitempty"`
 }
 

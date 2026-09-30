@@ -32,8 +32,18 @@
                             {{end}}
 
                             <h3>{{.Name}}</h3>
-                            <p>{{.Date}}</p>
-                            <p>{{.Venue}}</p>
+                            <p>
+                                <strong>Date:</strong>
+                                {{if .Date}}{{.Date}}{{else}}TBA{{end}}
+                                |
+                                {{if .Time}}{{.Time}}{{else}}TBA{{end}}
+                            </p>
+                            <p>
+                                <strong>Venue:</strong>
+                                {{if .Venue}}{{.Venue}}{{else}}TBA{{end}}
+                                |
+                                {{if .City}}{{.City}}{{else}}TBA{{end}}{{if .State}}, {{.State}}{{end}}
+                            </p>
 
                             <a href="/events/{{.ID}}">
                                 View Details

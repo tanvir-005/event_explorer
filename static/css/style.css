@@ -1,3 +1,8 @@
+:root {
+    --dark: #200e0e;
+
+}
+
 * {
     box-sizing: border-box;
 }
@@ -6,17 +11,19 @@ body {
     margin: 0;
     font-family: Arial, sans-serif;
     background: #f5f5f5;
-    color: #222;
+    color: var(--dark);
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    /* align-items: center; */
 }
 
 header,
 footer {
-    background: #222;
+    background: var(--dark);
     color: white;
     padding: 16px 20px;
+    text-align: center;
 }
 
 header a {
@@ -68,6 +75,7 @@ button {
 
 section {
     margin: 30px 0;
+    border: 1px solid var(--dark);
 }
 
 section > div,
@@ -78,12 +86,15 @@ article {
     border-radius: 8px;
 }
 
+h2 {
+    text-align: center;
+}
+
 article img {
     width: 100%;
     max-width: 400px;
     height: 220px;
     object-fit: cover;
-    border-radius: 6px;
 }
 
 article a {

@@ -4,9 +4,6 @@ import (
 	"event_explorer/services"
 
 	beego "github.com/beego/beego/v2/server/web"
-	"net/http"
-	"net/url"
-	"strings"
 )
 
 type EventController struct {
@@ -52,27 +49,5 @@ func (c *EventController) Details() {
 }
 
 func (c *EventController) Redirect() {
-	eventID := c.Ctx.Input.Param(":eventId")
-
-	if eventID == "" {
-		c.CustomAbort(http.StatusBadRequest, "Invalid event.")
-		return
-	}
-
-	event, err := services.App.Ticketmaster.GetEvent(eventID)
-	if err != nil || event.TicketURL == "" {
-		c.CustomAbort(http.StatusNotFound, "Ticket link not found.")
-		return
-	}
-
-	parsedURL, err := url.Parse(event.TicketURL)
-	if err != nil ||
-		parsedURL.Scheme != "https" ||
-		!strings.EqualFold(parsedURL.Hostname(), "www.ticketmaster.com") {
-		c.CustomAbort(http.StatusBadGateway, "Invalid ticket link.")
-		return
-	}
-
-	c.Ctx.ResponseWriter.Header().Set("Location", event.TicketURL)
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusFound)
+	c.TplName = "unavailable.tpl"
 }

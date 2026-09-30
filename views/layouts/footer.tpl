@@ -1,3 +1,3 @@
 <footer>
-    <p>Event Explorer</p>
+    <p>Event Explorer Footer</p>
 </footer>

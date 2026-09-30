@@ -1,5 +1,5 @@
 <header>
     <nav>
-        <a href="/">Event Explorer</a>
+        <a href="/">Event Explorer Header</a>
     </nav>
 </header>

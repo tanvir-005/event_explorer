@@ -1,2 +1,4 @@
 .env
 event_explorer
+api-response.json
+api-response-single.json
