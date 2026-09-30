@@ -117,3 +117,8 @@ article a {
         margin: 0;
     }
 }
+
+.google-attribution {
+    font-size: 12px;
+    margin-top: 6px;
+}

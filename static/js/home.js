@@ -11,13 +11,13 @@ function newSessionToken() {
     return crypto.randomUUID();
 }
 
-sessionTokenInput.value = newSessionToken();
-
 input.addEventListener("input", () => {
     clearTimeout(debounceTimer);
 
     placeIdInput.value = "";
     error.textContent = "";
+
+    sessionTokenInput.value = newSessionToken();
 
     const value = input.value.trim();
 

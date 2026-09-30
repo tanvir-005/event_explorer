@@ -26,6 +26,8 @@ func (c *EventCache) Get(key string) ([]models.Event, bool) {
 
 	if ok {
 		log.Printf("cache hit: %s", key)
+	} else {
+		log.Printf("cache miss: %s", key)
 	}
 
 	return events, ok

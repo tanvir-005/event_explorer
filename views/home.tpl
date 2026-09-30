@@ -27,6 +27,7 @@
 
             <button type="submit">Search</button>
         </form>
+        <p class="google-attribution">Powered by Google</p>
 
         <p id="error"></p>
     </main>

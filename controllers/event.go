@@ -1,6 +1,10 @@
 package controllers
 
 import (
+	"net/http"
+	"net/url"
+	"strings"
+
 	"event_explorer/services"
 
 	beego "github.com/beego/beego/v2/server/web"
@@ -49,5 +53,46 @@ func (c *EventController) Details() {
 }
 
 func (c *EventController) Redirect() {
-	c.TplName = "unavailable.tpl"
+	eventID := c.Ctx.Input.Param(":eventId")
+
+	if eventID == "" {
+		c.Data["Error"] = "Invalid event."
+		c.TplName = "unavailable.tpl"
+		return
+	}
+
+	event, err := services.App.Ticketmaster.GetEvent(eventID)
+	if err != nil {
+		c.Data["Error"] = "Unable to find the event."
+		c.TplName = "unavailable.tpl"
+		return
+	}
+
+	if event.TicketURL == "" {
+		c.Data["Error"] = "Ticket link is unavailable."
+		c.TplName = "unavailable.tpl"
+		return
+	}
+
+	ticketURL, err := url.Parse(event.TicketURL)
+	if err != nil {
+		c.Data["Error"] = "Invalid ticket link."
+		c.TplName = "unavailable.tpl"
+		return
+	}
+
+	if ticketURL.Scheme != "https" {
+		c.Data["Error"] = "Invalid ticket link."
+		c.TplName = "unavailable.tpl"
+		return
+	}
+
+	if !strings.EqualFold(ticketURL.Hostname(), "www.ticketmaster.com") {
+		c.Data["Error"] = "Invalid ticket provider."
+		c.TplName = "unavailable.tpl"
+		return
+	}
+
+	c.Ctx.ResponseWriter.Header().Set("Location", event.TicketURL)
+	c.Ctx.ResponseWriter.WriteHeader(http.StatusFound)
 }

@@ -3,7 +3,6 @@ package controllers
 import (
 	"event_explorer/models"
 	"event_explorer/services"
-	"event_explorer/utils"
 	"fmt"
 	beego "github.com/beego/beego/v2/server/web"
 	"net/http"
@@ -32,11 +31,8 @@ func (c *APIController) Autocomplete() {
 		return
 	}
 
-	service := services.NewGooglePlacesService(
-		utils.LoadConfig().GooglePlacesAPIKey,
-	)
+	result, err := services.App.GooglePlaces.Autocomplete(input, token)
 
-	result, err := service.Autocomplete(input, token)
 	if err != nil {
 		c.respond(http.StatusBadGateway, map[string]string{
 			"error": "Unable to fetch city suggestions",
@@ -75,11 +71,8 @@ func (c *APIController) Location() {
 		return
 	}
 
-	service := services.NewGooglePlacesService(
-		utils.LoadConfig().GooglePlacesAPIKey,
-	)
+	result, err := services.App.GooglePlaces.GetPlace(placeID, token)
 
-	result, err := service.GetPlace(placeID, token)
 	if err != nil {
 		c.respond(http.StatusBadGateway, map[string]string{
 			"error": "Unable to resolve selected city",
