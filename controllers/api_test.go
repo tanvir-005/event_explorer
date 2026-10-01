@@ -505,6 +505,31 @@ func TestAPIControllerInvalidateCache(t *testing.T) {
 	}
 }
 
+func TestAPIControllerInvalidateCacheForCity(t *testing.T) {
+	cache := &mockCacheProvider{}
+	controller := &APIController{Cache: cache}
+	register := newAPITestRegister(controller)
+
+	response := performAPIRequest(
+		register,
+		http.MethodGet,
+		"/api/cache/invalidate?city=Dhaka&countryCode=BD",
+	)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, response.Code)
+	}
+	if len(cache.deletedKeys) != 2 {
+		t.Fatalf("expected both category keys to be deleted, got %v", cache.deletedKeys)
+	}
+	wantKeys := []string{"Dhaka:BD:Music", "Dhaka:BD:Sports"}
+	for index, wantKey := range wantKeys {
+		if cache.deletedKeys[index] != wantKey {
+			t.Errorf("deleted key %d = %q, want %q", index, cache.deletedKeys[index], wantKey)
+		}
+	}
+}
+
 func TestAPIControllerInvalidateCacheMissingParameters(t *testing.T) {
 	cache := &mockCacheProvider{}
 
@@ -517,7 +542,7 @@ func TestAPIControllerInvalidateCacheMissingParameters(t *testing.T) {
 	response := performAPIRequest(
 		register,
 		http.MethodGet,
-		"/api/cache/invalidate?city=Dhaka&countryCode=BD",
+		"/api/cache/invalidate?city=Dhaka&category=Music",
 	)
 
 	if response.Code != http.StatusBadRequest {

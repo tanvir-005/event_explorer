@@ -136,16 +136,22 @@ func (c *APIController) InvalidateCache() {
 	countryCode := c.GetString("countryCode")
 	category := c.GetString("category")
 
-	if city == "" || countryCode == "" || category == "" {
+	if city == "" || countryCode == "" {
 		c.respond(http.StatusBadRequest, map[string]string{
-			"error": "city, countryCode and category are required",
+			"error": "city and countryCode are required",
 		})
 		return
 	}
 
-	key := fmt.Sprintf("%s:%s:%s", city, countryCode, category)
+	categories := []string{category}
+	if category == "" {
+		categories = []string{"Music", "Sports"}
+	}
 
-	c.cache().Delete(key)
+	for _, category := range categories {
+		key := fmt.Sprintf("%s:%s:%s", city, countryCode, category)
+		c.cache().Delete(key)
+	}
 
 	c.respond(http.StatusOK, map[string]string{
 		"message": "cache invalidated",
