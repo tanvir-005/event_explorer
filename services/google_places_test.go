@@ -1,10 +1,12 @@
 package services
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 func googleServiceWithResponse(statusCode int, payload string) *GooglePlacesService {
@@ -202,5 +204,67 @@ func TestGetPlaceReturnsErrorForMalformedJSON(t *testing.T) {
 			"expected nil response for malformed JSON, got %+v",
 			response,
 		)
+	}
+}
+
+func TestNewGooglePlacesServiceConfiguresClient(t *testing.T) {
+	service := NewGooglePlacesService("google-test-key")
+
+	if service.apiKey != "google-test-key" {
+		t.Fatalf("got API key %q, want google-test-key", service.apiKey)
+	}
+	if service.client == nil {
+		t.Fatal("expected an HTTP client")
+	}
+	if service.client.Timeout != 10*time.Second {
+		t.Fatalf("got client timeout %s, want 10s", service.client.Timeout)
+	}
+}
+
+func TestGooglePlacesMethodsReturnTransportErrors(t *testing.T) {
+	transportError := errors.New("network unavailable")
+	service := &GooglePlacesService{
+		client: &http.Client{
+			Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+				return nil, transportError
+			}),
+		},
+	}
+
+	if response, err := service.Autocomplete("Dhaka", "session-123"); err == nil || response != nil {
+		t.Fatalf("Autocomplete returned response=%v, error=%v; want transport error", response, err)
+	}
+	if response, err := service.GetPlace("place-123", "session-123"); err == nil || response != nil {
+		t.Fatalf("GetPlace returned response=%v, error=%v; want transport error", response, err)
+	}
+}
+
+func TestGetPlaceEscapesPathAndSessionToken(t *testing.T) {
+	var gotPath string
+	var gotSessionToken string
+	service := &GooglePlacesService{
+		client: &http.Client{
+			Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+				gotPath = request.URL.EscapedPath()
+				gotSessionToken = request.URL.Query().Get("sessionToken")
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     make(http.Header),
+					Body:       io.NopCloser(strings.NewReader(`{"addressComponents":[]}`)),
+					Request:    request,
+				}, nil
+			}),
+		},
+	}
+
+	_, err := service.GetPlace("place/with space", "session&unexpected=yes")
+	if err != nil {
+		t.Fatalf("GetPlace returned error: %v", err)
+	}
+	if gotPath != "/v1/places/place%2Fwith%20space" {
+		t.Fatalf("got escaped path %q, want escaped Place ID", gotPath)
+	}
+	if gotSessionToken != "session&unexpected=yes" {
+		t.Fatalf("got session token %q, want the full token", gotSessionToken)
 	}
 }

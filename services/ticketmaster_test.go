@@ -1,10 +1,12 @@
 package services
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
@@ -169,5 +171,65 @@ func TestGetEventReturnsErrorForAPIFailure(t *testing.T) {
 
 	if event != nil {
 		t.Fatalf("expected no event on API failure, got %+v", event)
+	}
+}
+
+func TestNewTicketmasterServiceConfiguresClient(t *testing.T) {
+	service := NewTicketmasterService("ticketmaster-test-key")
+
+	if service.apiKey != "ticketmaster-test-key" {
+		t.Fatalf("got API key %q, want ticketmaster-test-key", service.apiKey)
+	}
+	if service.client == nil {
+		t.Fatal("expected an HTTP client")
+	}
+	if service.client.Timeout != 10*time.Second {
+		t.Fatalf("got client timeout %s, want 10s", service.client.Timeout)
+	}
+}
+
+func TestGetEventsReturnsErrorForTransportFailure(t *testing.T) {
+	transportError := errors.New("network unavailable")
+	service := &TicketmasterService{
+		client: &http.Client{
+			Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+				return nil, transportError
+			}),
+		},
+	}
+
+	if events, err := service.GetEvents("Las Vegas", "US", "Music"); err == nil || events != nil {
+		t.Fatalf("GetEvents returned events=%v, error=%v; want transport error", events, err)
+	}
+}
+
+func TestGetEventsReturnsErrorForMalformedJSON(t *testing.T) {
+	service := serviceWithResponse(`{"_embedded":`)
+
+	if events, err := service.GetEvents("Las Vegas", "US", "Music"); err == nil || events != nil {
+		t.Fatalf("GetEvents returned events=%v, error=%v; want decode error", events, err)
+	}
+}
+
+func TestGetEventReturnsErrorForTransportFailure(t *testing.T) {
+	transportError := errors.New("network unavailable")
+	service := &TicketmasterService{
+		client: &http.Client{
+			Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+				return nil, transportError
+			}),
+		},
+	}
+
+	if event, err := service.GetEvent("event-123"); err == nil || event != nil {
+		t.Fatalf("GetEvent returned event=%v, error=%v; want transport error", event, err)
+	}
+}
+
+func TestGetEventReturnsErrorForMalformedJSON(t *testing.T) {
+	service := serviceWithResponse(`{"id":`)
+
+	if event, err := service.GetEvent("event-123"); err == nil || event != nil {
+		t.Fatalf("GetEvent returned event=%v, error=%v; want decode error", event, err)
 	}
 }

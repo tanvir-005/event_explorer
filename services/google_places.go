@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -101,14 +102,14 @@ func (s *GooglePlacesService) GetPlace(
 	sessionToken string,
 ) (*PlaceDetailsResponse, error) {
 
-	url := fmt.Sprintf(
-		"%s/v1/places/%s?sessionToken=%s",
+	requestURL := fmt.Sprintf(
+		"%s/v1/places/%s?%s",
 		googlePlacesBaseURL,
-		placeID,
-		sessionToken,
+		url.PathEscape(placeID),
+		url.Values{"sessionToken": {sessionToken}}.Encode(),
 	)
 
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return nil, err
 	}

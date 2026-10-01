@@ -4,14 +4,43 @@ import (
 	"event_explorer/models"
 	"event_explorer/services"
 	"fmt"
-	beego "github.com/beego/beego/v2/server/web"
 	"net/http"
 	"slices"
 	"strings"
+
+	beego "github.com/beego/beego/v2/server/web"
 )
+
+type GooglePlacesProvider interface {
+	Autocomplete(input, sessionToken string) (*services.AutocompleteResponse, error)
+	GetPlace(placeID, sessionToken string) (*services.PlaceDetailsResponse, error)
+}
+
+type CacheProvider interface {
+	Delete(key string)
+	Clear()
+}
 
 type APIController struct {
 	beego.Controller
+	GooglePlaces GooglePlacesProvider
+	Cache        CacheProvider
+}
+
+func (c *APIController) googlePlaces() GooglePlacesProvider {
+	if c.GooglePlaces != nil {
+		return c.GooglePlaces
+	}
+
+	return services.App.GooglePlaces
+}
+
+func (c *APIController) cache() CacheProvider {
+	if c.Cache != nil {
+		return c.Cache
+	}
+
+	return services.App.Cache
 }
 
 func (c *APIController) respond(status int, data interface{}) {
@@ -31,7 +60,7 @@ func (c *APIController) Autocomplete() {
 		return
 	}
 
-	result, err := services.App.GooglePlaces.Autocomplete(input, token)
+	result, err := c.googlePlaces().Autocomplete(input, token)
 
 	if err != nil {
 		c.respond(http.StatusBadGateway, map[string]string{
@@ -71,7 +100,7 @@ func (c *APIController) Location() {
 		return
 	}
 
-	result, err := services.App.GooglePlaces.GetPlace(placeID, token)
+	result, err := c.googlePlaces().GetPlace(placeID, token)
 
 	if err != nil {
 		c.respond(http.StatusBadGateway, map[string]string{
@@ -116,7 +145,7 @@ func (c *APIController) InvalidateCache() {
 
 	key := fmt.Sprintf("%s:%s:%s", city, countryCode, category)
 
-	services.App.Cache.Delete(key)
+	c.cache().Delete(key)
 
 	c.respond(http.StatusOK, map[string]string{
 		"message": "cache invalidated",
@@ -124,7 +153,7 @@ func (c *APIController) InvalidateCache() {
 }
 
 func (c *APIController) InvalidateAllCache() {
-	services.App.Cache.Clear()
+	c.cache().Clear()
 
 	c.respond(http.StatusOK, map[string]string{
 		"message": "all cache data invalidated",

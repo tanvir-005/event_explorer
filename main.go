@@ -12,6 +12,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
+var runServer = beego.Run
+
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found; using environment variables")
@@ -24,6 +26,5 @@ func main() {
 		config.TicketmasterAPIKey,
 	)
 
-	beego.Run()
+	runServer()
 }
-

@@ -171,6 +171,11 @@ func TestEventServiceKeepsSuccessfulCategoryWhenOtherFails(t *testing.T) {
 			}
 		}
 	}
+
+	service.GetEvents("Las Vegas", "US")
+	if provider.Calls() != 3 {
+		t.Fatalf("provider made %d calls after retry, want 3 (cached Music and retried Sports)", provider.Calls())
+	}
 }
 
 type selectiveMockEventProvider struct {
@@ -195,4 +200,33 @@ func (m *selectiveMockEventProvider) GetEvents(
 	}
 
 	return m.events[category], nil
+}
+
+func (m *selectiveMockEventProvider) Calls() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	return m.callCount
+}
+
+func TestInitializeWiresApplicationServices(t *testing.T) {
+	previousApp := App
+	t.Cleanup(func() {
+		App = previousApp
+	})
+
+	Initialize("google-test-key", "ticketmaster-test-key")
+
+	if App == nil || App.GooglePlaces == nil || App.Ticketmaster == nil || App.Events == nil || App.Cache == nil {
+		t.Fatal("Initialize did not populate every application service")
+	}
+	if App.GooglePlaces.apiKey != "google-test-key" {
+		t.Fatalf("got Google Places key %q, want google-test-key", App.GooglePlaces.apiKey)
+	}
+	if App.Ticketmaster.apiKey != "ticketmaster-test-key" {
+		t.Fatalf("got Ticketmaster key %q, want ticketmaster-test-key", App.Ticketmaster.apiKey)
+	}
+	if App.Events.cache != App.Cache || App.Events.ticketmaster != App.Ticketmaster {
+		t.Fatal("event service does not share the application cache and Ticketmaster service")
+	}
 }
