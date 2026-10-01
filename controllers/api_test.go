@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"event_explorer/models"
 	"event_explorer/services"
 
 	beego "github.com/beego/beego/v2/server/web"
@@ -44,6 +45,15 @@ func (m *mockGooglePlacesProvider) GetPlace(
 type mockCacheProvider struct {
 	deletedKeys []string
 	clearCalls  int
+}
+
+type invalidationEventProvider struct {
+	requestedCategories []string
+}
+
+func (p *invalidationEventProvider) GetEvents(city, countryCode, category string) ([]models.Event, error) {
+	p.requestedCategories = append(p.requestedCategories, category)
+	return []models.Event{{ID: "fresh-" + category}}, nil
 }
 
 func (m *mockCacheProvider) Delete(key string) {
@@ -502,6 +512,44 @@ func TestAPIControllerInvalidateCache(t *testing.T) {
 			expectedKey,
 			cache.deletedKeys[0],
 		)
+	}
+}
+
+func TestAPIControllerInvalidatesOnlyRequestedCategory(t *testing.T) {
+	cache := services.NewEventCache()
+	cache.Set("New York:US:Music", []models.Event{{ID: "cached-music"}})
+	cache.Set("New York:US:Sports", []models.Event{{ID: "cached-sports"}})
+	controller := &APIController{Cache: cache}
+	register := newAPITestRegister(controller)
+
+	response := performAPIRequest(
+		register,
+		http.MethodGet,
+		"/api/cache/invalidate?city=New%20York&countryCode=US&category=Sports",
+	)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, response.Code)
+	}
+
+	provider := &invalidationEventProvider{}
+	results := services.NewEventService(provider, cache).GetEvents("New York", "US")
+	if len(provider.requestedCategories) != 1 || provider.requestedCategories[0] != "Sports" {
+		t.Fatalf("provider fetched categories %v, want only Sports", provider.requestedCategories)
+	}
+	if len(results) != 2 {
+		t.Fatalf("got %d category results, want 2", len(results))
+	}
+	for _, result := range results {
+		switch result.Category {
+		case "Music":
+			if len(result.Events) != 1 || result.Events[0].ID != "cached-music" {
+				t.Errorf("Music cache was not preserved: %+v", result.Events)
+			}
+		case "Sports":
+			if len(result.Events) != 1 || result.Events[0].ID != "fresh-Sports" {
+				t.Errorf("Sports cache was not refreshed: %+v", result.Events)
+			}
+		}
 	}
 }
 
